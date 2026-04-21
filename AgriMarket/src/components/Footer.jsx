@@ -1,6 +1,7 @@
 import React from 'react';
 import {Phone ,Mail, GitHub, LinkedIn, Instagram} from '@mui/icons-material';
 import '../componentStyles/Footer.css';
+import { Link } from 'react-router-dom';
 
 function Footer() {
   return (
@@ -31,12 +32,14 @@ function Footer() {
             </div>
             {/* section3 */}
                 <div className='footer-section about'>
-                    <h3>About</h3>
-                    <p>This is an Internship Project</p>
+                    {/* <h3>About</h3> */}
+                    <Link to="/about-us" style={{color:"white",fontSize:"20px"}}>About Us</Link>
+                    <p>Connecting farmers directly with consumers for a better, fair, and
+          sustainable future 🌾</p>
                 </div>
         </div>
         <div className='footer-bottom'>
-            <p>&copy; 2026 nikammonali. All rights reserved</p>
+            <p>&copy; 2026 AgriMarket. All rights reserved</p>
         </div>
 
     </footer>

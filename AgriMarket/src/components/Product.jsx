@@ -9,9 +9,7 @@ function Product({ product }) {
 
     const handleRatingChange = (newRating) => {
         setRating(newRating);
-        console.log(`rating changed to : ${newRating}`);
-        
-    
+        console.log(`rating changed to : ${newRating}`);   
     
     }
     

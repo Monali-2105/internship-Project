@@ -6,12 +6,17 @@ import Footer from '../components/Footer';
 import Rating from '@mui/material/Rating';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
-import { getProductDetails, removeErrors } from '../features/products/productSlice';
+import { createReview, getProductDetails, removeErrors, removeSuccess } from '../features/products/productSlice';
 import { toast } from 'react-toastify';
 import Loader from '../components/Loader';
+import { addItemsToCart, removeMessage } from '../features/cart/cartSlice';
 
 function ProductDetails() {
         const [userRating, setUserRating] = useState(0);
+        const [comment,setComment]=useState("");
+        const [quantity, setQuantity] = useState(1);
+        const [selectedImage, setSelectedImage] = useState("");
+
     
         const handleRatingChange = (newRating) => {
             setUserRating(newRating);
@@ -19,7 +24,8 @@ function ProductDetails() {
         
         }
 
-        const {loading,error,product} = useSelector((state)=>state.Product);
+        const {loading,error,product,reviewSuccess,reviewLoading} = useSelector((state)=>state.Product);
+        const {loading:cartLoading,error:cartError,success,message} = useSelector((state)=>state.cart);
         const dispatch = useDispatch();
         const {id} = useParams();
         useEffect(()=>{
@@ -36,9 +42,80 @@ function ProductDetails() {
                     toast.error(error.message,{position:'top-center',autoClose:3000});
                     dispatch(removeErrors())
                 }
-            },[dispatch,error])
+                if(cartError){
+                    toast.error(cartError.message,{position:'top-center',autoClose:3000});
+            }
+            },[dispatch,error,cartError])
 
-            if(loading){
+        useEffect(()=>{
+                if(success){
+                    toast.success(message,{position:'top-center',autoClose:3000});
+                    dispatch(removeMessage())
+                }
+                
+            },[dispatch,success,message])
+
+            
+
+         
+    const decreaseQuantity=()=>{
+        if(quantity<=1){
+            toast.error('Quantity cannot be less than 1',
+                {position:'top-center',autoClose:3000});
+            dispatch(removeErrors());
+            return;
+        }
+        setQuantity(qty=>qty-1);
+    }
+
+    const increaseQuantity=()=>{
+        if(product.stock<=quantity){
+            toast.error('Cannot exceed available stock',
+                {position:'top-center',autoClose:3000});
+            dispatch(removeErrors());
+            return;
+        }
+        setQuantity(qty=>qty+1);
+    }
+
+    const addToCart=()=>{
+        dispatch(addItemsToCart({id,quantity}));
+    }
+
+    const handleReviewSubmit=(e)=>{
+        e.preventDefault();
+        if(!userRating){
+            toast.error('Please Select a rating',{position:'top-center',
+                autoClose:3000
+            });
+            return
+        }
+        dispatch(createReview({
+            rating:userRating,
+            comment,
+            productId:id
+        }))
+    }
+
+    useEffect(()=>{
+        if(reviewSuccess){
+            toast.success('Review Submitted Successfully',
+                {position:'top-center',autoClose:3000}
+            );
+            setUserRating(0);
+            setComment("");
+            dispatch(removeSuccess())
+            dispatch(getProductDetails(id))
+        }
+    },[reviewSuccess,id,dispatch])
+
+    useEffect(()=>{
+        if(product && product.image && product.image.length>0){
+            setSelectedImage(product.image[0].url)
+        }
+    },[product])
+
+       if(loading){
                 return(
                     <>
                     <Navbar/>
@@ -57,6 +134,7 @@ function ProductDetails() {
                     </>
                 )
             }
+
         
   return (
     <>
@@ -66,8 +144,17 @@ function ProductDetails() {
     <div className="product-details-container">
         <div className="product-detail-container">
             <div className="product-image-container">
-                <img src={product.image[0].url} 
-                alt={product.name} className='product-detail-image' />
+                <img src={selectedImage} alt={product.name} className='product-detail-image' />
+                {product.image.length>1 && (
+                    <div className="product-thumbnails">
+                    {product.image.map((img,index)=>(
+                        <img src={img.url} alt={`Thumbnail ${index+1}`} 
+                        className="thumbnail-image" 
+                        onClick={()=>setSelectedImage(img.url)} />
+                    )
+
+                    )}
+                </div>)}
 
             </div>
             <div className="product-info">
@@ -95,38 +182,51 @@ function ProductDetails() {
                     </span>
                 </div>
 
-                {<>
-                product.stock &gt 0 &&(
+
+               
+                {
+                product.stock > 0 &&(
+                    <>
                 <div className="quantity-controls">
                     <span className="quantity-label">
                         Quantity
                     </span>
-                    <button className="quantity-button">
+                    <button className="quantity-button" onClick={decreaseQuantity}>
                         -
                     </button>
-                    <input type='text' value={1} className='quantity-value' readOnly/>
-                    <button className="quantity-button">
+                    <input type='text' value={quantity} className='quantity-value' readOnly/>
+                    <button className="quantity-button" onClick={increaseQuantity}>
                         +
                     </button>
                 </div>
 
-                <button className="add-to-cart-btn">
-                    Add To Cart
+                <button className="add-to-cart-btn" onClick={addToCart}
+                disabled={cartLoading}>
+                    {cartLoading?"Adding To Cart":"Add To Cart"}
                 </button>
-                )
                 </>
+                )
+                
                 }
+                
 
-                <form  className="review-form">
+                <form  className="review-form" onSubmit={handleReviewSubmit}>
                     <h3>Write a Review</h3>
                     <Rating
-                    value={0}
+                    
+                    value={userRating}
                     disabled={false}
+                    onChange={(event, newValue) => {
+                        setUserRating(newValue);
+                    }}
                     />
                     <textarea placeholder='Write your review here' 
-                    className="review-input"></textarea>
-                    <button className="submit-review-btn">
-                        Submit Review
+                    className="review-input" value={comment} onChange={(e)=>setComment(e.target.value)} required></textarea>
+                    <button className="submit-review-btn" disabled=
+                    {reviewLoading}
+                     
+                    >
+                        {reviewLoading ? 'Submitting' : 'Submit Review'}
                     </button>
                 </form>
             </div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import '../pageStyles/Products.css';
 import PageTitle from '../components/PageTitle';
 import Navbar from '../components/Navbar';
@@ -10,6 +10,7 @@ import Loader from '../components/Loader';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import NoProduct from '../components/NoProducts';
+import Pagination from '../components/Pagination';
 
 
 function Products() {
@@ -19,17 +20,28 @@ function Products() {
     const location=useLocation();
     const searchParams=new URLSearchParams(location.search);
     const keyword=searchParams.get("keyword");
+    const pageFromURL=parseInt(searchParams.get("page"),10) ||1;
+    const [currentPage,setCurrentPage]=useState(pageFromURL);
+
     const category=searchParams.get("category");
     
 
 
-    const categories=["Fruits", "Vegetables", "Dairy-Products"]
+    const categories=["Fruits",
+    "Vegetables",
+    "Grains",
+    "Pulses",
+    "Dairy",
+    "Spices",
+    "Organic",
+    "Flowers",
+    "Others"]
     
     
 
      useEffect(()=>{
-            dispatch(getProduct({keyword,category}));
-        },[dispatch, keyword, category])
+            dispatch(getProduct({keyword,page:currentPage,category}));
+        },[dispatch, keyword, currentPage,category])
 
     useEffect(()=>{
             if(error){
@@ -37,6 +49,20 @@ function Products() {
                 dispatch(removeErrors())
             }
         },[dispatch,error])
+
+        const handlePageChange=(page)=>{
+            if(page!==currentPage){
+                setCurrentPage(page);
+                const newSearchParams=new URLSearchParams(location.search);
+                if(page===1){
+                    newSearchParams.delete('page')
+                }else{
+                    newSearchParams.set('page',page)
+
+                }
+                navigate(`?${newSearchParams.toString()}`)
+            }
+        }
 
         const handleCategoryClick=(category)=>{
             const newSearchParams=new URLSearchParams(location.search);
@@ -78,6 +104,12 @@ function Products() {
             </div>):(
                 <NoProduct keyword={keyword} />
             )}
+            <Pagination
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+
+
+            />
         </div>
     </div>
 

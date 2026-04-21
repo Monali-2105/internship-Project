@@ -3,22 +3,22 @@ import { crateReviewForProduct, createProduct, deleteProduct, deleteReview, getA
 import { verifyUserAuth, roleBasedAccess } from "../middleware/userAuth.js";
 const router=express.Router();
 
-router.route("/products")
-.get(getAllProducts)
-.post(verifyUserAuth,roleBasedAccess("farmer"),createProduct);
+router.route("/products").get(getAllProducts)
+router.route("/admin/product/create").post(verifyUserAuth,roleBasedAccess("admin"),createProduct);
 
 router.route("/admin/products")
 .get(verifyUserAuth,roleBasedAccess("admin"),getAdminProducts);
-
 router.route("/product/:id")
-.put(verifyUserAuth,roleBasedAccess("farmer"),updateProduct)
-.delete(verifyUserAuth,roleBasedAccess("farmer"),deleteProduct)
+.get(getSingleProduct);
+router.route("/admin/product/:id")
+.put(verifyUserAuth,roleBasedAccess("admin"),updateProduct)
+.delete(verifyUserAuth,roleBasedAccess("admin"),deleteProduct)
 .get(getSingleProduct);
 
 router.route("/review").put(verifyUserAuth,crateReviewForProduct);
 
-router.route("/reviews")
-.get(getProductReviews)
-.delete(verifyUserAuth,deleteReview);
+router.route("/admin/reviews")
+.get(verifyUserAuth,roleBasedAccess("admin"),getProductReviews)
+.delete(verifyUserAuth,roleBasedAccess("admin"),deleteReview);
 
 export default router;

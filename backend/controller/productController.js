@@ -3,9 +3,33 @@ import Product from "../models/productModel.js";
 import HandleError from "../utils/handleError.js";
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import APIFunctionality from "../utils/apiFunctionality.js";
+import {v2 as cloudinary} from 'cloudinary'
+
 
 //1. Create product
 export const createProduct=handleAsyncError(async(req,res,next)=>{
+    let image=[];
+
+    if(typeof req.body.image==="string"){
+        image.push(req.body.image)
+    }else{
+        image=req.body.image
+    }
+
+    const imageLinks=[]
+    for(let i=0;i<image.length;i++){
+        const result=await cloudinary.uploader.upload(image[i],{
+            folder:'products'
+        })
+        imageLinks.push({
+            public_id:result.public_id,
+            url:result.secure_url
+        })
+        
+    }
+
+    req.body.image=imageLinks
+
    req.body.user=req.user.id;
    
         const product=await Product.create(req.body);
@@ -53,7 +77,58 @@ export const getAllProducts=handleAsyncError(async(req,res,next)=>{
 
 //3. update products
 export const updateProduct=handleAsyncError(async(req,res,next)=>{
-    let product=await Product.findByIdAndUpdate(
+    let product=await Product.findById(req.params.id)
+    if(!product){
+        return next(new HandleError("Product not found",404));
+    }
+
+    let images=[];
+    if(typeof req.body.image ==='string'){
+        images.push(req.body.image)
+    }else if(Array.isArray(req.body.image)){
+        images=req.body.image
+
+    }
+
+    // if(images.length>0){
+    //     for(let i=0;i<product.image.length;i++){
+    //         await cloudinary.uploader.destroy(product.image[i].public_id)
+
+    //     }
+
+    // Check if the user ACTUALLY uploaded new images
+    if (images !== undefined && images.length > 0) {
+        
+        // 1. Safely delete old images ONLY if they exist
+        if (product.image && product.image.length > 0) {
+            for (let i = 0; i < product.image.length; i++) {
+                try {
+                    // Added a try-catch so a missing Cloudinary image doesn't crash the update
+                    if (product.image[i].public_id) {
+                        await cloudinary.uploader.destroy(product.image[i].public_id);
+                    }
+                } catch (error) {
+                    console.log("Error deleting old image from Cloudinary:", error);
+                }
+            }
+        }
+
+        //Upload new images
+        const imageLinks=[]
+    for(let i=0;i<images.length;i++){
+        const result=await cloudinary.uploader.upload(images[i],{
+            folder:'products'
+        })
+        imageLinks.push({
+            public_id:result.public_id,
+            url:result.secure_url
+        })
+        
+    }
+    req.body.image=imageLinks
+
+    }
+    product=await Product.findByIdAndUpdate(
         req.params.id,
         req.body,
     {
@@ -61,9 +136,7 @@ export const updateProduct=handleAsyncError(async(req,res,next)=>{
         runValidators:true 
     })
 
-    if(!product){
-        return next(new HandleError("Product not found",404));
-    }
+    
     res.status(200).json({
         success:true,
         product

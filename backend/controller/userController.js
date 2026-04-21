@@ -84,7 +84,7 @@ export const requestPasswordReset=handleAsyncError(async(req, res , next)=>{
         return next(new HandleError("Could not save reset token. please try again latar" , 500))
 
     }
-    const resetPasswordURL = `http://localhost/api/reset/${resetToken}`;
+    const resetPasswordURL = `${req.protocol}://${req.get('host')}/reset/${resetToken}`;
     const message = `Use the following link to reset your password: ${resetPasswordURL}. \n\n This link will expire in 30 min. \n\n If you didn't request a password reset, please ignore this msg.`;
 
     try{
@@ -132,7 +132,8 @@ export const resetPassword=handleAsyncError(async(req, res , next)=>{
         user.password=password;
         user.resetPasswordToken=undefined;
         user.resetPasswordExpire=undefined;
-        await user.save();
+        //await user.save();
+        await user.save({ validateBeforeSave: false });
         sendToken(user,200,res)
 })
 
@@ -157,6 +158,9 @@ export const updatePassword=handleAsyncError(async(req , res , next)=>{
     if(newPassword!==confirmPassword){
         return next(new HandleError("Password doesn't match",400))
     }
+    if (newPassword.length < 8) {
+        return next(new HandleError("Password should be greater than 8 characters", 400));
+    }
     user.password=newPassword;
     await user.save();
     sendToken(user,200,res);
@@ -165,10 +169,25 @@ export const updatePassword=handleAsyncError(async(req , res , next)=>{
 
 //Updating user profile
 export const updateProfile=handleAsyncError(async(req , res , next)=>{
-    const {name,email}=req.body;
+    const {name,email,avatar}=req.body;
     const updateUserDetails={
         name,
         email
+    }
+    if(avatar!==""){
+        const user=await User.findById(req.user.id);
+        const imageId=user.avatar.public_id;
+        await cloudinary.uploader.destroy(imageId);
+        const mycloud=await cloudinary.uploader.upload(avatar,{
+            folder:"avatars",
+            width:150,
+            crop:"scale"
+        })
+
+        updateUserDetails.avatar={
+            public_id:mycloud.public_id,
+            url:mycloud.secure_url
+        }
     }
     const user=await User.findByIdAndUpdate(req.user.id,updateUserDetails,{
         new:true,
@@ -226,12 +245,19 @@ export const updateUserRole=handleAsyncError(async(req,res,next)=>{
 
 //Admin - Delete User profile
 export const deleteUser=handleAsyncError(async(req,res,next)=>{
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
     if(!user){
         return next(new HandleError("User doesn't exist",400))
     }
     
+    const imageId=user.avatar.public_id;
+    if(imageId){
 
+        await cloudinary.uploader.destroy(imageId)
+    }
+    
+
+    await User.findByIdAndDelete(req.params.id);
     res.status(200).json({
         success:true,
         message:"User Deleted Successfully...!"

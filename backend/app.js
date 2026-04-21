@@ -8,7 +8,10 @@ import cookieParser from "cookie-parser";
 import fileupload from "express-fileupload";
 
 const app = express();
-app.use(express.json());
+// INCREASE THE LIMITS HERE (50mb is usually plenty for images)
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+//app.use(express.json());
 app.use(cookieParser());
 app.use(fileupload());
 

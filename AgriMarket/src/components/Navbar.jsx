@@ -7,6 +7,7 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CloseIcon from '@mui/icons-material/Close';
 import MenuIcon from '@mui/icons-material/Menu';
 import '../pageStyles/Search.css'
+import { useSelector } from 'react-redux';
 
 
 function Navbar() {
@@ -17,7 +18,9 @@ function Navbar() {
     const toggleSearch=()=>setIsSearchOpen(!isSearchOpen);
 
     const toggleMenu=()=>setIsMenuOpen(!isMenuOpen);
-    const isAuthenticated=false;
+    const {isAuthenticated}=useSelector((state)=>state.user);
+    const {cartItems}=useSelector((state)=>state.cart);
+
 
     const handleSearchSubmit=(e)=>{
         e.preventDefault();
@@ -35,7 +38,7 @@ function Navbar() {
     <nav className='navbar'>
         <div className='navbar-container'>
             <div className='navbar-logo'>
-                <Link to="/" onClick={()=>setIsMenuOpen(false)}>ShopEasy</Link>
+                <Link to="/" onClick={()=>setIsMenuOpen(false)}>AgriMarket</Link>
             </div>
 
             <div className={`navbar-links ${isMenuOpen?'active':""}`}>
@@ -67,7 +70,7 @@ function Navbar() {
                 <div className='cart-container'>
                     <Link to="/cart">
                     <ShoppingCartIcon className="icon"/>
-                    <span className='cart-badge'>5</span>
+                    <span className='cart-badge'>{cartItems.length}</span>
                     </Link>
                 </div>
 
